@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>File Upload Preview</title>
+    <!-- 引入 Element UI 的样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <style>
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f5f5f5;
+        }
+        .content {
+            display: flex;
+            width: 80%;
+            max-width: 800px;
+            background-color: #fff;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        .left {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-right: 1px solid #eaeaea;
+        }
+        .right {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .el-button--default {
+            background-color: #409eff;
+            color: #fff;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 10px 20px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .el-button--default:hover {
+            background-color: #66b1ff;
+        }
+        #fileInput {
+            display: none;
+        }
+        #preview {
+            max-width: 100%;
+            max-height: 300px;
+            margin-bottom: 20px;
+            border: 1px solid #eaeaea;
+            border-radius: 4px;
+        }
+        #serverImageUrl {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #eaeaea;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        #externalPreview img {
+            max-width: 100%;
+            max-height: 300px;
+            border: 1px solid #eaeaea;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="content">
+        <div class="left">
+            <label for="fileInput" class="el-button el-button--default">Choose File</label>
+            <br />
+            <input type="file" id="fileInput" accept="image/*" onchange="previewFile()" style="display: none;">
+            <div id="preview"></div>
+        </div>
+        <div class="right">
+            <label id="serverImageUrl">server file path</label>
+            <div id="externalPreview"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 引入 Element UI 的 JavaScript -->
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+
+<script>
+    const fileServer = 'http://localhost:9000';
+    const httpServer = 'http://localhost:10000';
+
+    function uploadFile(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        fetch(httpServer+'/upload', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('File uploaded successfully:', data);
+                // 在这里可以处理上传成功的逻辑
+                updateImagePreview(data.filePath);
+            })
+            .catch(error => {
+                console.error('Upload error:', error);
+                // 在这里可以处理上传失败的逻辑
+            });
+    }
+
+    function previewFile() {
+        const preview = document.getElementById('preview');
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = document.createElement('img');
+                img.src = event.target.result;
+                img.style.maxWidth = '100%';
+                img.style.maxHeight = '300px';
+                img.style.borderRadius = '4px';
+                preview.innerHTML = '';
+                preview.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+
+            // 调用上传文件的函数
+            uploadFile(file);
+        } else {
+            preview.innerHTML = '';
+        }
+    }
+
+    function updateImagePreview(src) {
+        const serverImageUrl = document.getElementById('serverImageUrl');
+        serverImageUrl.innerText = fileServer+"/"+src;
+        const externalPreview = document.getElementById('externalPreview');
+        // const imageUrl = imageUrlInput.value.trim();
+        const imageUrl = src;
+
+        externalPreview.innerHTML = '';
+        if (imageUrl) {
+            const img = document.createElement('img');
+            img.src = fileServer+"/"+imageUrl;
+            img.style.maxWidth = '100%';
+            img.style.maxHeight = '300px';
+            img.style.borderRadius = '4px';
+            externalPreview.appendChild(img);
+        }
+    }
+</script>
+</body>
+</html>
